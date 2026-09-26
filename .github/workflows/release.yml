@@ -1,0 +1,57 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to build a release for (e.g. v0.2.0)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Publish release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Check the tag matches manifest.json
+        run: |
+          # HACS shows manifest version while offering the release by tag, so a
+          # mismatch between the two is a release nobody can diagnose.
+          tag="${{ inputs.tag || github.ref_name }}"
+          manifest=$(python3 -c "import json; print(json.load(open('custom_components/rover_client/manifest.json'))['version'])")
+          if [ "$tag" != "v$manifest" ]; then
+            echo "::error::tag $tag does not match manifest version $manifest"
+            exit 1
+          fi
+          echo "tag $tag matches manifest version $manifest"
+
+      - name: Build the install zip
+        run: |
+          # HACS can install from the repository tree, but a zip attached to the
+          # release is what makes a manual install a download rather than a lesson
+          # in which directory goes where.
+          cd custom_components/rover_client
+          zip -r "${{ github.workspace }}/rover_client.zip" . -x '*.pyc' -x '__pycache__/*'
+
+      - name: Create the release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          name: ${{ inputs.tag || github.ref_name }}
+          files: rover_client.zip
+          generate_release_notes: true
+          body: |
+            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/${{ inputs.tag || github.ref_name }}/CHANGELOG.md) for what changed.
+
+            **Install:** HACS → ⋮ → Custom repositories → add this repository as an
+            Integration, then install and restart. Or unzip `rover_client.zip` into
+            `config/custom_components/rover_client/`.
