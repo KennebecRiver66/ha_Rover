@@ -50,9 +50,9 @@
     }
   },
   "issues": {
-    "session_expired": {
-      "title": "Rover session expired",
-      "description": "The saved browser session for {title} is no longer accepted, so bookings have stopped updating. This is normal - the cookie expires every few weeks.\n\nTo fix it, go to **Settings > Devices & services > Rover Client** and complete the **Reconfigure** prompt with a fresh `Cookie:` header from a browser where you are signed in to Rover. Your entities and history are kept."
+    "blocked_repeatedly": {
+      "title": "Rover is refusing automated requests",
+      "description": "Rover has answered {title} with a bot-protection challenge instead of data {polls} polls in a row, so bookings have stopped updating. `sensor.rover_session` reports `Blocked` and the other sensors are unavailable.\n\nYour saved session is probably fine - this is Rover's protection reacting to the request, not to the cookie, so there is nothing to re-paste.\n\nWhat helps:\n\n- Wait. Challenges usually clear on their own.\n- Check the poll interval under **Settings > Devices & services > Rover Client > Configure**. If it was shortened, put it back up; frequent polling is what attracts this.\n- Open rover.com in a browser on the same network and complete any challenge it shows you there.\n\nThis notice disappears by itself as soon as a poll gets through."
     }
   },
   "entity": {

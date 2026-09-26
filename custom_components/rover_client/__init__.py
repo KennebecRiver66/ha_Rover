@@ -6,7 +6,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
 
-from .const import DOMAIN, ISSUE_SESSION_EXPIRED
+from .const import DOMAIN, ISSUE_BLOCKED
 from .coordinator import RoverConfigEntry, RoverCoordinator
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
@@ -32,12 +32,12 @@ async def async_unload_entry(hass: HomeAssistant, entry: RoverConfigEntry) -> bo
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: RoverConfigEntry) -> None:
-    """Take the expired-session repair away with the entry that raised it.
+    """Take the blocked repair away with the entry that raised it.
 
     Not done on unload: an unload is usually half of a reload, and a repair that
     blinks out and back is worse than one that stays put.
     """
-    ir.async_delete_issue(hass, DOMAIN, f"{ISSUE_SESSION_EXPIRED}_{entry.entry_id}")
+    ir.async_delete_issue(hass, DOMAIN, f"{ISSUE_BLOCKED}_{entry.entry_id}")
 
 
 async def _async_update_listener(hass: HomeAssistant, entry: RoverConfigEntry) -> None:

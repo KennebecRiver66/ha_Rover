@@ -49,7 +49,21 @@ SESSION_ERROR: Final = "error"
 # pairs instead of looking for particular cookie names.
 MIN_COOKIE_PAIRS: Final = 2
 
-# Repair issue raised when the saved session stops being accepted. A reauth card
-# in Settings is correct but quiet, and this failure is a routine one - the cookie
-# expires every few weeks - so it also belongs somewhere the user cannot miss it.
-ISSUE_SESSION_EXPIRED: Final = "session_expired"
+# Repair issue for a bot challenge that will not go away.
+#
+# NOT for an expired cookie: Home Assistant raises its own repair whenever a
+# ConfigEntryAuthFailed starts a reauth flow (config_entries.py, and it has done so
+# since well before the 2025.2 floor this integration declares), and that card
+# opens the reauth dialog directly. A second card saying the same thing in worse
+# words is clutter, so there isn't one.
+#
+# A challenge is the opposite case: nothing is raised, on purpose, because the
+# cookie is probably fine and the next poll is hours away. That leaves the one
+# outcome this integration exists to prevent - data quietly stopping with nothing
+# to explain it - so a run of consecutive challenges gets a repair of its own.
+ISSUE_BLOCKED: Final = "blocked_repeatedly"
+
+# Four polls in a row, which is a day at the default interval. One challenge is
+# routine and clears itself; four is Rover having decided something about this IP,
+# and worth telling a human about.
+BLOCKED_POLLS_BEFORE_REPAIR: Final = 4

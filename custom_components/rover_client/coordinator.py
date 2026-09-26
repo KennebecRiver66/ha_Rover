@@ -21,12 +21,13 @@ from .api import (
     RoverConnectionError,
 )
 from .const import (
+    BLOCKED_POLLS_BEFORE_REPAIR,
     CONF_COOKIE,
     CONF_SCAN_INTERVAL_HOURS,
     CONVERSATION_SCAN_DEPTH,
     DEFAULT_SCAN_INTERVAL_HOURS,
     DOMAIN,
-    ISSUE_SESSION_EXPIRED,
+    ISSUE_BLOCKED,
     MAX_SCAN_INTERVAL_HOURS,
     MIN_SCAN_INTERVAL_HOURS,
     SESSION_BLOCKED,
@@ -34,8 +35,7 @@ from .const import (
 )
 
 LEARN_MORE_URL = (
-    "https://github.com/KennebecRiver66/HARoverClient"
-    "#when-the-session-expires"
+    "https://github.com/KennebecRiver66/HARoverClient#bot-challenges"
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -109,7 +109,11 @@ class RoverCoordinator(DataUpdateCoordinator[RoverData]):
         self.client = RoverClient(
             async_get_clientsession(hass), entry.data[CONF_COOKIE]
         )
-        self._issue_id = f"{ISSUE_SESSION_EXPIRED}_{entry.entry_id}"
+        self._issue_id = f"{ISSUE_BLOCKED}_{entry.entry_id}"
+        # Counted in memory, so a restart forgives the streak. That is the right
+        # way round: a repair that outlives the condition it describes is worse
+        # than one raised a day late.
+        self._blocked_polls = 0
 
     async def _async_update_data(self) -> RoverData:
         """Poll once and translate failures into the right HA reaction.
@@ -126,45 +130,52 @@ class RoverCoordinator(DataUpdateCoordinator[RoverData]):
           and lose the one piece of information worth having: that we were blocked.
         - RoverConnectionError -> UpdateFailed, the ordinary transient path.
 
-        The auth path additionally raises a repair issue. ConfigEntryAuthFailed on
-        its own only produces a reauth card inside Settings, which is easy to go
-        weeks without noticing - and weeks of not noticing is exactly what happens
-        to a cookie that expires every few weeks.
+        The challenge path also counts. One challenge is routine, but a run of them
+        means data has stopped arriving with nothing raised anywhere to say so -
+        Home Assistant cannot know, because being blocked is reported as a state
+        rather than a failure. After four in a row that becomes a repair.
         """
         try:
             payload = await self.client.async_get_conversations()
         except RoverAuthError as err:
-            self._async_create_session_issue()
+            # No issue raised here: Home Assistant creates its own repair when this
+            # exception starts a reauth flow, and that card opens the reauth dialog
+            # directly. Adding a second one would just say the same thing twice.
             raise ConfigEntryAuthFailed(str(err)) from err
         except RoverBlockedError as err:
-            # No issue raised and none cleared: a challenge says nothing either way
-            # about whether the cookie is still good.
             _LOGGER.debug("Rover bot protection challenge: %s", err)
+            self._blocked_polls += 1
+            if self._blocked_polls >= BLOCKED_POLLS_BEFORE_REPAIR:
+                self._async_create_blocked_issue()
             return RoverData(session_state=SESSION_BLOCKED, detail=str(err))
         except RoverConnectionError as err:
+            self._blocked_polls = 0
             raise UpdateFailed(str(err)) from err
 
-        self._async_clear_session_issue()
+        self._blocked_polls = 0
+        self._async_clear_blocked_issue()
         return self._parse(payload)
 
-    def _async_create_session_issue(self) -> None:
-        """Surface a dead session on the Repairs dashboard."""
+    def _async_create_blocked_issue(self) -> None:
+        """Say out loud that Rover has been refusing us for a while."""
         ir.async_create_issue(
             self.hass,
             DOMAIN,
             self._issue_id,
-            # Not fixable in place: the fix is pasting a fresh cookie, which the
-            # reauth flow already does properly. A repair flow here would be a
-            # second, divergent copy of that form.
+            # Not fixable from here, because there is nothing to press: the fix is
+            # waiting, and possibly lengthening the poll interval.
             is_fixable=False,
-            severity=ir.IssueSeverity.ERROR,
-            translation_key=ISSUE_SESSION_EXPIRED,
-            translation_placeholders={"title": self.config_entry.title},
+            severity=ir.IssueSeverity.WARNING,
+            translation_key=ISSUE_BLOCKED,
+            translation_placeholders={
+                "title": self.config_entry.title,
+                "polls": str(self._blocked_polls),
+            },
             learn_more_url=LEARN_MORE_URL,
         )
 
-    def _async_clear_session_issue(self) -> None:
-        """Drop the repair issue once a poll succeeds again."""
+    def _async_clear_blocked_issue(self) -> None:
+        """Drop the repair once a poll gets through again."""
         ir.async_delete_issue(self.hass, DOMAIN, self._issue_id)
 
     @staticmethod
