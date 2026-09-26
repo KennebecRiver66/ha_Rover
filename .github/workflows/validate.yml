@@ -23,11 +23,10 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
-          # The brands check needs artwork merged into home-assistant/brands, so
-          # nothing in this repository can satisfy it on its own. The artwork now
-          # exists - see brands/ - and this line comes out the moment the upstream
-          # PR merges. Every other HACS check is live.
-          ignore: brands
+          # No checks ignored. The brands check used to be, because it needed
+          # artwork merged into home-assistant/brands and nothing here could
+          # satisfy it; it is satisfied now by the brand/ images shipped inside the
+          # integration. See docs/brands-submission.md.
 
   ruff:
     name: Ruff
