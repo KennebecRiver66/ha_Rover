@@ -11,17 +11,23 @@ from unittest.mock import patch
 
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.rover_client.api import RoverBlockedError
+from custom_components.rover_client.api import (
+    RoverAuthError,
+    RoverBlockedError,
+    RoverConnectionError,
+)
 from custom_components.rover_client.const import (
     DOMAIN,
     SESSION_BLOCKED,
+    SESSION_ERROR,
+    SESSION_NOT_SIGNED_IN,
     SESSION_SIGNED_IN,
 )
 from homeassistant.const import STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 
-from .conftest import SITTER_ONE, SITTER_TWO
+from .conftest import SITTER_ONE, SITTER_TWO, conversations_payload
 
 API = "custom_components.rover_client.api.RoverClient.async_get_conversations"
 
@@ -91,6 +97,42 @@ async def test_session_sensor_survives_a_block(
     assert hass.states.get(SESSION).state == SESSION_BLOCKED
     assert hass.states.get(LATEST).state == STATE_UNAVAILABLE
     assert hass.states.get(COUNT).state == STATE_UNAVAILABLE
+
+
+async def test_session_sensor_reports_a_network_failure(
+    hass: HomeAssistant, setup_integration: MockConfigEntry
+) -> None:
+    """After a failed poll the session sensor says so instead of the old value.
+
+    The trap this guards is specific: a failed update leaves the coordinator's data
+    at the last SUCCESSFUL poll, so reading it would have the one diagnostic sensor
+    cheerfully report "Signed in" through an outage that started days ago.
+    """
+    with patch(API, side_effect=RoverConnectionError("no route")):
+        await setup_integration.runtime_data.async_refresh()
+        await hass.async_block_till_done()
+
+    assert hass.states.get(SESSION).state == SESSION_ERROR
+    assert hass.states.get(LATEST).state == STATE_UNAVAILABLE
+
+    with patch(API, return_value=conversations_payload()):
+        await setup_integration.runtime_data.async_refresh()
+        await hass.async_block_till_done()
+
+    assert hass.states.get(SESSION).state == SESSION_SIGNED_IN
+    assert hass.states.get(LATEST).state == "overnight-boarding"
+
+
+async def test_session_sensor_reports_a_rejected_cookie(
+    hass: HomeAssistant, setup_integration: MockConfigEntry
+) -> None:
+    """A dead cookie reads as `not_signed_in`, not as the last good value."""
+    with patch(API, side_effect=RoverAuthError("session rejected")):
+        await setup_integration.runtime_data.async_refresh()
+        await hass.async_block_till_done()
+
+    assert hass.states.get(SESSION).state == SESSION_NOT_SIGNED_IN
+    assert hass.states.get(LATEST).state == STATE_UNAVAILABLE
 
 
 async def test_unload_removes_the_entities(

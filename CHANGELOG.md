@@ -15,7 +15,7 @@ entity IDs, the config entry and the cookie you already pasted are all untouched
   shows an icon instead of a generic puzzle piece. Read directly by Home Assistant
   2026.3 and later; older versions still need the images on the brands CDN, and
   `docs/brands-submission.md` has those steps.
-- **A test suite**, 81 tests, running the integration inside a real Home Assistant:
+- **A test suite**, 83 tests, running the integration inside a real Home Assistant:
   the config and reauth flows, every form error, the parser against realistic and
   malformed payloads, the three failure modes, the session sensor's availability
   rule, and diagnostics redaction. Run in CI on every push.
@@ -35,6 +35,12 @@ entity IDs, the config entry and the cookie you already pasted are all untouched
 
 ### Changed
 
+- **`sensor.rover_session` now reports why a poll failed** instead of holding the
+  last value it saw. It used to read `Signed in` throughout an outage, because a
+  failed update leaves the previous successful data in place - the diagnostic sensor
+  reproducing the exact failure it exists to reveal. `not_signed_in` and `error`
+  were already documented and translated states that nothing could produce; now they
+  appear when they apply.
 - **A pasted cookie is now repaired where it can be.** A leading `Cookie:`, the
   quotes a `document.cookie` value arrives with, and the line wrapping devtools adds
   are all handled, instead of being rejected.

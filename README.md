@@ -19,6 +19,15 @@ A Home Assistant integration that reads your [Rover](https://www.rover.com) acco
 | `sensor.rover_latest_service_type` | `overnight-boarding` | The service type of the newest booking. Its attributes carry a sitter → service-type map. |
 | `sensor.rover_conversations` | `14` | How many conversations the account has. A cheap liveness signal. |
 
+`sensor.rover_session` is the one to write alerts against, because it keeps reporting when the others cannot:
+
+| State | Meaning |
+|---|---|
+| `signed_in` | The last poll worked. |
+| `not_signed_in` | Rover rejected the saved cookie — paste a fresh one via the Reconfigure prompt. |
+| `blocked` | Rover answered with a bot-protection challenge. Your cookie is probably fine. |
+| `error` | Rover could not be reached at all. |
+
 The per-sitter map on `sensor.rover_latest_service_type` is the useful part when you book several sitters at once:
 
 ```yaml
@@ -178,7 +187,7 @@ These are the honest edges. Most are Rover's, not this integration's.
 ```bash
 python3 -m venv .venv && . .venv/bin/activate
 pip install -r requirements_test.txt
-python -m pytest                       # 81 tests, real Home Assistant fixtures
+python -m pytest                       # 83 tests, real Home Assistant fixtures
 ruff check .
 python3 scripts/sync_translations.py   # after editing strings.json
 ```

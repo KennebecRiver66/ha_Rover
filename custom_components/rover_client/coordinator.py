@@ -31,6 +31,8 @@ from .const import (
     MAX_SCAN_INTERVAL_HOURS,
     MIN_SCAN_INTERVAL_HOURS,
     SESSION_BLOCKED,
+    SESSION_ERROR,
+    SESSION_NOT_SIGNED_IN,
     SESSION_SIGNED_IN,
 )
 
@@ -114,6 +116,13 @@ class RoverCoordinator(DataUpdateCoordinator[RoverData]):
         # way round: a repair that outlives the condition it describes is worse
         # than one raised a day late.
         self._blocked_polls = 0
+        # Why the last poll failed, for the session sensor to report.
+        #
+        # Needed because a failure leaves `data` holding the last SUCCESSFUL poll,
+        # so without this the diagnostic sensor would sit there saying "Signed in"
+        # while nothing had got through for days - the precise failure this
+        # integration is built to avoid, reproduced by the sensor meant to reveal it.
+        self.failure_state: str | None = None
 
     async def _async_update_data(self) -> RoverData:
         """Poll once and translate failures into the right HA reaction.
@@ -141,17 +150,21 @@ class RoverCoordinator(DataUpdateCoordinator[RoverData]):
             # No issue raised here: Home Assistant creates its own repair when this
             # exception starts a reauth flow, and that card opens the reauth dialog
             # directly. Adding a second one would just say the same thing twice.
+            self.failure_state = SESSION_NOT_SIGNED_IN
             raise ConfigEntryAuthFailed(str(err)) from err
         except RoverBlockedError as err:
             _LOGGER.debug("Rover bot protection challenge: %s", err)
+            self.failure_state = None
             self._blocked_polls += 1
             if self._blocked_polls >= BLOCKED_POLLS_BEFORE_REPAIR:
                 self._async_create_blocked_issue()
             return RoverData(session_state=SESSION_BLOCKED, detail=str(err))
         except RoverConnectionError as err:
+            self.failure_state = SESSION_ERROR
             self._blocked_polls = 0
             raise UpdateFailed(str(err)) from err
 
+        self.failure_state = None
         self._blocked_polls = 0
         self._async_clear_blocked_issue()
         return self._parse(payload)

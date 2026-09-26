@@ -87,7 +87,20 @@ class RoverSensor(CoordinatorEntity[RoverCoordinator], SensorEntity):
 
     @property
     def native_value(self) -> StateType:
-        """Return the sensor value."""
+        """Return the sensor value.
+
+        The session sensor reports why the last poll failed in preference to the
+        data, because after a failure the data is the last SUCCESSFUL poll - so
+        reading it would have this sensor claim "Signed in" during an outage that
+        started days ago. The other sensors go unavailable instead; for them a stale
+        value presented as current is worse than no value.
+        """
+        if (
+            self.entity_description.key == "session"
+            and self.coordinator.failure_state is not None
+        ):
+            return self.coordinator.failure_state
+
         if self.coordinator.data is None:
             return None
         return self.entity_description.value_fn(self.coordinator.data)
