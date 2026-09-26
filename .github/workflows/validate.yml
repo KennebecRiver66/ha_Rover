@@ -23,10 +23,10 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
-          # TODO(#1): remove this once the integration is accepted into
-          # home-assistant/brands. Until then the brands check can only fail,
-          # because it needs artwork submitted to that upstream repository -
-          # nothing in this repo can satisfy it. Every other HACS check is live.
+          # The brands check needs artwork merged into home-assistant/brands, so
+          # nothing in this repository can satisfy it on its own. The artwork now
+          # exists - see brands/ - and this line comes out the moment the upstream
+          # PR merges. Every other HACS check is live.
           ignore: brands
 
   ruff:
@@ -37,3 +37,25 @@ jobs:
       - uses: astral-sh/ruff-action@v3
         with:
           args: check --output-format=github
+
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          # Pinned to the Python that the pinned Home Assistant needs; see
+          # requirements_test.txt.
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: requirements_test.txt
+      - name: Install test dependencies
+        run: pip install -r requirements_test.txt
+      - name: Run tests
+        run: |
+          python -m pytest \
+            --cov=custom_components/rover_client \
+            --cov-report=term-missing
+      - name: Check translations/en.json is generated from strings.json
+        run: python scripts/sync_translations.py --check
