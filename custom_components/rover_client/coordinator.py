@@ -36,9 +36,7 @@ from .const import (
     SESSION_SIGNED_IN,
 )
 
-LEARN_MORE_URL = (
-    "https://github.com/KennebecRiver66/HARoverClient#bot-challenges"
-)
+LEARN_MORE_URL = "https://github.com/KennebecRiver66/HARoverClient#bot-challenges"
 
 _LOGGER = logging.getLogger(__name__)
 
