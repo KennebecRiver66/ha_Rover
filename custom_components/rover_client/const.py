@@ -34,3 +34,8 @@ SESSION_SIGNED_IN: Final = "signed_in"
 SESSION_NOT_SIGNED_IN: Final = "not_signed_in"
 SESSION_BLOCKED: Final = "blocked"
 SESSION_ERROR: Final = "error"
+
+# Fewer pairs than this and the paste is a single cookie from the devtools cookie
+# table rather than a whole Cookie header. See cookie.py for why the check counts
+# pairs instead of looking for particular cookie names.
+MIN_COOKIE_PAIRS: Final = 2

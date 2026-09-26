@@ -3,30 +3,35 @@
     "step": {
       "user": {
         "title": "Connect to Rover",
-        "description": "Rover has no public API and its sign-in page is behind a bot check, so this integration reuses a session from a browser where you are already signed in.\n\n1. Sign in at rover.com in your browser.\n2. Open developer tools (F12) and go to the Network tab.\n3. Reload the page and click any request to rover.com.\n4. Under Request Headers, copy the whole value of the `Cookie:` header.\n5. Paste it below.\n\nThe cookie is stored in Home Assistant's config entry, not in your YAML, and is redacted from diagnostics. It expires after a few weeks, and Home Assistant will ask you for a new one when it does.",
+        "description": "Rover has no public API and its sign-in page is behind a bot check, so this integration reuses a session from a browser where you are already signed in.\n\n1. Sign in at rover.com in your browser.\n2. Open developer tools (F12) and go to the **Network** tab.\n3. Reload the page and click any request to rover.com.\n4. Under **Request Headers**, right-click the `Cookie` row and copy its value.\n5. Paste it below.\n\nA valid value is a long list of `name=value` pairs separated by `; ` - not a single cookie. Redacted example:\n\n`__cf_bm=aaaaaaaa...; csrftoken=bbbbbbbb...; sessionid=cccccccc...; roverid=dddddddd...`\n\nA `document.cookie` value from the browser console works too, and a leading `Cookie:` is fine - both are cleaned up for you.\n\nThe cookie is stored in Home Assistant's config entry, not in your YAML, and is redacted from diagnostics. It expires after a few weeks, and Home Assistant will ask you for a new one when it does.",
         "data": {
           "cookie": "Cookie header"
         },
         "data_description": {
-          "cookie": "The full Cookie header value, beginning with something like `__cf_bm=` or `csrftoken=`."
+          "cookie": "The whole Cookie header value, with every `name=value` pair - usually several hundred characters long."
         }
       },
       "reauth_confirm": {
         "title": "Rover session expired",
-        "description": "The saved Rover session is no longer accepted. Copy a fresh `Cookie:` header from a browser where you are signed in to Rover, using the same steps as when you set this up.",
+        "description": "The saved Rover session is no longer accepted. Copy a fresh `Cookie:` header from a browser where you are signed in to Rover, using the same steps as when you set this up.\n\nYour entities, history and automations are kept - only the saved session is replaced.",
         "data": {
           "cookie": "Cookie header"
+        },
+        "data_description": {
+          "cookie": "The whole Cookie header value, with every `name=value` pair."
         }
       }
     },
     "error": {
-      "invalid_auth": "Rover did not accept that cookie. Make sure you are signed in to Rover in the browser you copied it from, and that you copied the entire header value.",
+      "invalid_auth": "Rover accepted the request but reported no signed-in session. The cookie looks like a whole header, so the likely cause is that the browser you copied it from has since signed out. Sign in to Rover again, copy a fresh header and retry.",
+      "partial_cookie": "That is a single cookie, not a whole Cookie header. It needs every `name=value` pair from the header, separated by `; ` - copying one row out of the Application (or Storage) cookie table is not enough. Use the Network tab, click a request to rover.com, and copy the whole value of the `Cookie` request header.",
+      "invalid_cookie_format": "That does not look like a Cookie header. It should be a list of `name=value` pairs separated by `; `, for example `csrftoken=abcd1234; sessionid=efgh5678`.",
       "cannot_connect": "Could not reach Rover. Check your internet connection and try again.",
       "blocked": "Rover answered with a bot-protection challenge rather than data. This usually clears by itself - wait a few minutes and try again.",
       "unknown": "Something unexpected went wrong. Check the Home Assistant log for details."
     },
     "abort": {
-      "already_configured": "Rover is already set up.",
+      "already_configured": "Rover is already set up. This integration supports one Rover account per Home Assistant.",
       "reauth_successful": "Rover reconnected."
     }
   },

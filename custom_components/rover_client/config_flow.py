@@ -18,6 +18,7 @@ from .api import (
     RoverConnectionError,
 )
 from .const import CONF_COOKIE, DOMAIN
+from .cookie import cookie_problem, normalise_cookie
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -39,10 +40,19 @@ class RoverConfigFlow(ConfigFlow, domain=DOMAIN):
     async def _async_validate(self, cookie: str) -> dict[str, str]:
         """Try the cookie for real and map the outcome to form errors.
 
-        Validating by actually calling the API matters: a cookie can be
-        well-formed and still be signed out, and finding that out at setup time is
-        far kinder than a silently broken entry.
+        Shape is checked locally first so that the two mistakes that look alike
+        stay distinguishable: a single pasted cookie is caught here as
+        `partial_cookie`, while a whole header from a signed-out browser can only
+        be caught by Rover and comes back as `invalid_auth`. Reporting both as
+        "Rover rejected that cookie" is what makes setup feel like guesswork.
+
+        Validating the rest by actually calling the API matters too: a cookie can
+        be well-formed and still be signed out, and finding that out at setup time
+        is far kinder than a silently broken entry.
         """
+        if problem := cookie_problem(cookie):
+            return {"base": problem}
+
         client = RoverClient(async_get_clientsession(self.hass), cookie)
         try:
             await client.async_get_conversations()
@@ -66,11 +76,14 @@ class RoverConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            cookie = user_input[CONF_COOKIE].strip()
+            cookie = normalise_cookie(user_input[CONF_COOKIE])
             errors = await self._async_validate(cookie)
             if not errors:
                 # One Rover account per Home Assistant. The cookie itself is not a
                 # stable identity (it rotates), so the domain is the unique id.
+                # This limitation is documented in the README; lifting it needs an
+                # account identifier, and the one endpoint reachable with a cookie
+                # does not carry one.
                 await self.async_set_unique_id(DOMAIN)
                 self._abort_if_unique_id_configured()
                 return self.async_create_entry(
@@ -98,7 +111,7 @@ class RoverConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            cookie = user_input[CONF_COOKIE].strip()
+            cookie = normalise_cookie(user_input[CONF_COOKIE])
             errors = await self._async_validate(cookie)
             if not errors:
                 return self.async_update_reload_and_abort(
