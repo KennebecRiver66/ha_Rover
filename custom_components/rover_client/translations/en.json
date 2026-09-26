@@ -35,6 +35,20 @@
       "reauth_successful": "Rover reconnected."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Rover options",
+        "description": "How often to poll Rover for new conversations.\n\nSix hours is the default, and lowering it is not a free win: the endpoint this integration reads sits behind bot protection, and frequent polling from an authenticated session is what gets an IP flagged - after which the integration reports `Blocked` and returns nothing at all. Bookings change on the order of days, so a long interval loses nothing. One hour is the shortest allowed.",
+        "data": {
+          "scan_interval_hours": "Poll interval"
+        },
+        "data_description": {
+          "scan_interval_hours": "Hours between polls. Between 1 and 168 (a week); the default is 6."
+        }
+      }
+    }
+  },
   "issues": {
     "session_expired": {
       "title": "Rover session expired",

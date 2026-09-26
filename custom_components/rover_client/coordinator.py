@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from datetime import timedelta
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -21,10 +22,13 @@ from .api import (
 )
 from .const import (
     CONF_COOKIE,
+    CONF_SCAN_INTERVAL_HOURS,
     CONVERSATION_SCAN_DEPTH,
-    DEFAULT_SCAN_INTERVAL,
+    DEFAULT_SCAN_INTERVAL_HOURS,
     DOMAIN,
     ISSUE_SESSION_EXPIRED,
+    MAX_SCAN_INTERVAL_HOURS,
+    MIN_SCAN_INTERVAL_HOURS,
     SESSION_BLOCKED,
     SESSION_SIGNED_IN,
 )
@@ -57,6 +61,37 @@ class RoverData:
 type RoverConfigEntry = ConfigEntry[RoverCoordinator]
 
 
+def scan_interval(entry: RoverConfigEntry) -> timedelta:
+    """Return the poll interval for an entry, clamped to something sane.
+
+    Clamped here and not only in the options schema, because the stored value can
+    also arrive from a hand-edited .storage file or an entry written by an older
+    version, and a tight poll against a bot-protected endpoint is the one mistake
+    this integration must not make on the user's behalf.
+    """
+    raw = entry.options.get(CONF_SCAN_INTERVAL_HOURS, DEFAULT_SCAN_INTERVAL_HOURS)
+    try:
+        hours = float(raw)
+    except (TypeError, ValueError):
+        _LOGGER.warning(
+            "Ignoring unusable poll interval %r, falling back to %s hours",
+            raw,
+            DEFAULT_SCAN_INTERVAL_HOURS,
+        )
+        hours = float(DEFAULT_SCAN_INTERVAL_HOURS)
+
+    clamped = min(max(hours, MIN_SCAN_INTERVAL_HOURS), MAX_SCAN_INTERVAL_HOURS)
+    if clamped != hours:
+        _LOGGER.warning(
+            "Poll interval of %s hours is outside %s-%s hours, using %s",
+            hours,
+            MIN_SCAN_INTERVAL_HOURS,
+            MAX_SCAN_INTERVAL_HOURS,
+            clamped,
+        )
+    return timedelta(hours=clamped)
+
+
 class RoverCoordinator(DataUpdateCoordinator[RoverData]):
     """Fetches conversations on a slow interval and shapes them for entities."""
 
@@ -68,7 +103,7 @@ class RoverCoordinator(DataUpdateCoordinator[RoverData]):
             hass,
             _LOGGER,
             name=DOMAIN,
-            update_interval=DEFAULT_SCAN_INTERVAL,
+            update_interval=scan_interval(entry),
             config_entry=entry,
         )
         self.client = RoverClient(

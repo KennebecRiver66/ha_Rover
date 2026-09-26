@@ -8,6 +8,7 @@ from typing import Final
 DOMAIN: Final = "rover_client"
 
 CONF_COOKIE: Final = "cookie"
+CONF_SCAN_INTERVAL_HOURS: Final = "scan_interval_hours"
 
 BASE_URL: Final = "https://www.rover.com"
 CONVERSATIONS_PATH: Final = "/api/v3/conversations/"
@@ -24,7 +25,15 @@ USER_AGENT: Final = (
 # sits behind bot protection, and a tight poll against an authenticated session
 # is exactly the pattern that earns a block. Conversations change on the order of
 # days, so six hours costs nothing real.
-DEFAULT_SCAN_INTERVAL: Final = timedelta(hours=6)
+DEFAULT_SCAN_INTERVAL_HOURS: Final = 6
+DEFAULT_SCAN_INTERVAL: Final = timedelta(hours=DEFAULT_SCAN_INTERVAL_HOURS)
+
+# The options flow lets the interval be changed but not removed as a protection:
+# one hour is the floor because the reason for polling slowly is Rover's bot
+# detection, which no amount of user preference makes safer. A week is the
+# ceiling simply so that a fat-fingered entry cannot silently stop updates.
+MIN_SCAN_INTERVAL_HOURS: Final = 1
+MAX_SCAN_INTERVAL_HOURS: Final = 168
 
 # How many conversations to read service types from. The API returns newest
 # first; ten covers "we booked several sitters at once" without walking history.

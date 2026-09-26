@@ -1,4 +1,4 @@
-"""Config and reauth flow for Rover Client."""
+"""Config, reauth and options flows for Rover Client."""
 
 from __future__ import annotations
 
@@ -8,7 +8,13 @@ from typing import Any
 
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant.config_entries import (
+    ConfigFlow,
+    ConfigFlowResult,
+    OptionsFlow,
+)
+from homeassistant.core import callback
+from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import (
@@ -17,8 +23,16 @@ from .api import (
     RoverClient,
     RoverConnectionError,
 )
-from .const import CONF_COOKIE, DOMAIN
+from .const import (
+    CONF_COOKIE,
+    CONF_SCAN_INTERVAL_HOURS,
+    DEFAULT_SCAN_INTERVAL_HOURS,
+    DOMAIN,
+    MAX_SCAN_INTERVAL_HOURS,
+    MIN_SCAN_INTERVAL_HOURS,
+)
 from .cookie import cookie_problem, normalise_cookie
+from .coordinator import RoverConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -36,6 +50,12 @@ class RoverConfigFlow(ConfigFlow, domain=DOMAIN):
     """
 
     VERSION = 1
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: RoverConfigEntry) -> RoverOptionsFlow:
+        """Return the options flow for changing the poll interval."""
+        return RoverOptionsFlow()
 
     async def _async_validate(self, cookie: str) -> dict[str, str]:
         """Try the cookie for real and map the outcome to form errors.
@@ -121,3 +141,41 @@ class RoverConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="reauth_confirm", data_schema=STEP_SCHEMA, errors=errors
         )
+
+
+class RoverOptionsFlow(OptionsFlow):
+    """Let the poll interval be lengthened - and only barely shortened.
+
+    The floor is one hour and is enforced in three places: the selector, the
+    schema, and again when the coordinator reads the value. That is not paranoia
+    about the user, it is that the cost of getting this wrong is Rover's bot
+    detection flagging the household's IP, which is not a failure the user can
+    debug. The UI says as much rather than leaving the floor unexplained.
+    """
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Show and save the poll interval."""
+        if user_input is not None:
+            return self.async_create_entry(data=user_input)
+
+        current = self.config_entry.options.get(
+            CONF_SCAN_INTERVAL_HOURS, DEFAULT_SCAN_INTERVAL_HOURS
+        )
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_SCAN_INTERVAL_HOURS, default=current
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=MIN_SCAN_INTERVAL_HOURS,
+                        max=MAX_SCAN_INTERVAL_HOURS,
+                        step=1,
+                        mode=selector.NumberSelectorMode.BOX,
+                        unit_of_measurement="hours",
+                    )
+                )
+            }
+        )
+        return self.async_show_form(step_id="init", data_schema=schema)
