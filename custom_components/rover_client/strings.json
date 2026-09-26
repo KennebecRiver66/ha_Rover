@@ -1,0 +1,52 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to Rover",
+        "description": "Rover has no public API and its sign-in page is behind a bot check, so this integration reuses a session from a browser where you are already signed in.\n\n1. Sign in at rover.com in your browser.\n2. Open developer tools (F12) and go to the Network tab.\n3. Reload the page and click any request to rover.com.\n4. Under Request Headers, copy the whole value of the `Cookie:` header.\n5. Paste it below.\n\nThe cookie is stored in Home Assistant's config entry, not in your YAML, and is redacted from diagnostics. It expires after a few weeks, and Home Assistant will ask you for a new one when it does.",
+        "data": {
+          "cookie": "Cookie header"
+        },
+        "data_description": {
+          "cookie": "The full Cookie header value, beginning with something like `__cf_bm=` or `csrftoken=`."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Rover session expired",
+        "description": "The saved Rover session is no longer accepted. Copy a fresh `Cookie:` header from a browser where you are signed in to Rover, using the same steps as when you set this up.",
+        "data": {
+          "cookie": "Cookie header"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Rover did not accept that cookie. Make sure you are signed in to Rover in the browser you copied it from, and that you copied the entire header value.",
+      "cannot_connect": "Could not reach Rover. Check your internet connection and try again.",
+      "blocked": "Rover answered with a bot-protection challenge rather than data. This usually clears by itself - wait a few minutes and try again.",
+      "unknown": "Something unexpected went wrong. Check the Home Assistant log for details."
+    },
+    "abort": {
+      "already_configured": "Rover is already set up.",
+      "reauth_successful": "Rover reconnected."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "session": {
+        "name": "Session",
+        "state": {
+          "signed_in": "Signed in",
+          "not_signed_in": "Not signed in",
+          "blocked": "Blocked",
+          "error": "Error"
+        }
+      },
+      "latest_service_type": {
+        "name": "Latest service type"
+      },
+      "conversation_count": {
+        "name": "Conversations"
+      }
+    }
+  }
+}

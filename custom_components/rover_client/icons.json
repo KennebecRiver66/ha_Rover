@@ -1,0 +1,9 @@
+{
+  "entity": {
+    "sensor": {
+      "session": { "default": "mdi:dog-side" },
+      "latest_service_type": { "default": "mdi:dog-service" },
+      "conversation_count": { "default": "mdi:message-text" }
+    }
+  }
+}
