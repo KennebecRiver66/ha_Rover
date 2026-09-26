@@ -39,3 +39,8 @@ SESSION_ERROR: Final = "error"
 # table rather than a whole Cookie header. See cookie.py for why the check counts
 # pairs instead of looking for particular cookie names.
 MIN_COOKIE_PAIRS: Final = 2
+
+# Repair issue raised when the saved session stops being accepted. A reauth card
+# in Settings is correct but quiet, and this failure is a routine one - the cookie
+# expires every few weeks - so it also belongs somewhere the user cannot miss it.
+ISSUE_SESSION_EXPIRED: Final = "session_expired"

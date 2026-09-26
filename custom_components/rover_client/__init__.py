@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import issue_registry as ir
 
+from .const import DOMAIN, ISSUE_SESSION_EXPIRED
 from .coordinator import RoverConfigEntry, RoverCoordinator
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
@@ -29,6 +31,15 @@ async def async_unload_entry(hass: HomeAssistant, entry: RoverConfigEntry) -> bo
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 
+async def async_remove_entry(hass: HomeAssistant, entry: RoverConfigEntry) -> None:
+    """Take the expired-session repair away with the entry that raised it.
+
+    Not done on unload: an unload is usually half of a reload, and a repair that
+    blinks out and back is worse than one that stays put.
+    """
+    ir.async_delete_issue(hass, DOMAIN, f"{ISSUE_SESSION_EXPIRED}_{entry.entry_id}")
+
+
 async def _async_update_listener(hass: HomeAssistant, entry: RoverConfigEntry) -> None:
-    """Reload when the user saves a new cookie, so it takes effect at once."""
+    """Reload when the cookie or the poll interval changes, so it takes effect."""
     await hass.config_entries.async_reload(entry.entry_id)

@@ -35,6 +35,12 @@
       "reauth_successful": "Rover reconnected."
     }
   },
+  "issues": {
+    "session_expired": {
+      "title": "Rover session expired",
+      "description": "The saved browser session for {title} is no longer accepted, so bookings have stopped updating. This is normal - the cookie expires every few weeks.\n\nTo fix it, go to **Settings > Devices & services > Rover Client** and complete the **Reconfigure** prompt with a fresh `Cookie:` header from a browser where you are signed in to Rover. Your entities and history are kept."
+    }
+  },
   "entity": {
     "sensor": {
       "session": {

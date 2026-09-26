@@ -9,6 +9,7 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -23,8 +24,14 @@ from .const import (
     CONVERSATION_SCAN_DEPTH,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
+    ISSUE_SESSION_EXPIRED,
     SESSION_BLOCKED,
     SESSION_SIGNED_IN,
+)
+
+LEARN_MORE_URL = (
+    "https://github.com/KennebecRiver66/HARoverClient"
+    "#when-the-session-expires"
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -67,6 +74,7 @@ class RoverCoordinator(DataUpdateCoordinator[RoverData]):
         self.client = RoverClient(
             async_get_clientsession(hass), entry.data[CONF_COOKIE]
         )
+        self._issue_id = f"{ISSUE_SESSION_EXPIRED}_{entry.entry_id}"
 
     async def _async_update_data(self) -> RoverData:
         """Poll once and translate failures into the right HA reaction.
@@ -82,18 +90,47 @@ class RoverCoordinator(DataUpdateCoordinator[RoverData]):
           away anyway. Raising UpdateFailed here would mark entities unavailable
           and lose the one piece of information worth having: that we were blocked.
         - RoverConnectionError -> UpdateFailed, the ordinary transient path.
+
+        The auth path additionally raises a repair issue. ConfigEntryAuthFailed on
+        its own only produces a reauth card inside Settings, which is easy to go
+        weeks without noticing - and weeks of not noticing is exactly what happens
+        to a cookie that expires every few weeks.
         """
         try:
             payload = await self.client.async_get_conversations()
         except RoverAuthError as err:
+            self._async_create_session_issue()
             raise ConfigEntryAuthFailed(str(err)) from err
         except RoverBlockedError as err:
+            # No issue raised and none cleared: a challenge says nothing either way
+            # about whether the cookie is still good.
             _LOGGER.debug("Rover bot protection challenge: %s", err)
             return RoverData(session_state=SESSION_BLOCKED, detail=str(err))
         except RoverConnectionError as err:
             raise UpdateFailed(str(err)) from err
 
+        self._async_clear_session_issue()
         return self._parse(payload)
+
+    def _async_create_session_issue(self) -> None:
+        """Surface a dead session on the Repairs dashboard."""
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            self._issue_id,
+            # Not fixable in place: the fix is pasting a fresh cookie, which the
+            # reauth flow already does properly. A repair flow here would be a
+            # second, divergent copy of that form.
+            is_fixable=False,
+            severity=ir.IssueSeverity.ERROR,
+            translation_key=ISSUE_SESSION_EXPIRED,
+            translation_placeholders={"title": self.config_entry.title},
+            learn_more_url=LEARN_MORE_URL,
+        )
+
+    def _async_clear_session_issue(self) -> None:
+        """Drop the repair issue once a poll succeeds again."""
+        ir.async_delete_issue(self.hass, DOMAIN, self._issue_id)
 
     @staticmethod
     def _parse(payload: dict[str, Any]) -> RoverData:
