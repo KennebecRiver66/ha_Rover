@@ -31,8 +31,11 @@ A Home Assistant integration that reads your [Rover](https://www.rover.com) acco
 The per-sitter map on `sensor.rover_latest_service_type` is the useful part when you book several sitters at once:
 
 ```yaml
-# Which service did we book with Alex?
-{{ state_attr('sensor.rover_latest_service_type', 'Alex') }}   # overnight-boarding
+# The attribute key is the sitter's Rover first name, so ask about one by name:
+{{ state_attr('sensor.rover_latest_service_type', 'Testsitter') }}   # overnight-boarding
+
+# Or list everyone and what they were booked for:
+{{ states.sensor.rover_latest_service_type.attributes }}
 ```
 
 ### An automation that does something real

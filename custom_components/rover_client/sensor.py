@@ -110,9 +110,9 @@ class RoverSensor(CoordinatorEntity[RoverCoordinator], SensorEntity):
         """Expose the per-sitter service-type map on the latest-type sensor.
 
         As attributes rather than one packed string: the old YAML version encoded
-        this as 'Alex=overnight-boarding;Erin=dog-walking' purely because a sensor
-        state is capped at 255 characters. Attributes have no such limit, so
-        consumers can index a real mapping instead of parsing a string.
+        this as 'Firstsitter=overnight-boarding;Secondsitter=dog-walking' purely
+        because a sensor state is capped at 255 characters. Attributes have no such
+        limit, so consumers can index a real mapping instead of parsing a string.
         """
         if (
             self.entity_description.key != "latest_service_type"

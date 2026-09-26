@@ -40,6 +40,13 @@ Home Assistant version the tests run against. Bumping it is a deliberate change 
 its own commit: a new Home Assistant can change flow helpers and fixtures, and that
 should show up as a red run to read rather than as an unrelated PR failing.
 
+Note the two Home Assistant versions in play. `hacs.json` declares a **minimum** of
+2025.2.0, which is the oldest release whose APIs this code sticks to; the tests run
+against the **current** release. Anything newer than the floor - a helper, a flow
+method, a keyword argument - means raising the floor in the same pull request, and
+saying so in the changelog. The one deliberate exception is the `brand/` images,
+which older versions simply ignore.
+
 ## What CI checks
 
 Every push and pull request runs four jobs, all of which must pass:
