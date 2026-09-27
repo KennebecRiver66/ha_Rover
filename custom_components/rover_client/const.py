@@ -67,3 +67,39 @@ ISSUE_BLOCKED: Final = "blocked_repeatedly"
 # routine and clears itself; four is Rover having decided something about this IP,
 # and worth telling a human about.
 BLOCKED_POLLS_BEFORE_REPAIR: Final = 4
+
+SERVICE_COMPOSE_ACCESS_MESSAGE: Final = "compose_access_message"
+
+ATTR_CODE: Final = "code"
+ATTR_SITTER: Final = "sitter"
+ATTR_SERVICE_TYPE: Final = "service_type"
+ATTR_ARRIVAL: Final = "arrival"
+ATTR_EXTRA_NOTE: Final = "extra_note"
+
+# Which Rover services happen at YOUR home, and therefore need a door code.
+#
+# Matched as substrings of the service_type slug rather than compared to a fixed
+# list of slugs, because the slugs come from an undocumented API: `dog-walking`
+# and `drop-in-visit` are the two seen live, and Rover's own product names suggest
+# `house-sitting` exists too. A substring match survives Rover renaming
+# `drop-in-visit` to `drop-in-visits` without shipping an update.
+ACCESS_SERVICE_KEYWORDS: Final = (
+    "walk",
+    "drop-in",
+    "drop_in",
+    "dropin",
+    "house-sitting",
+    "house_sitting",
+    "housesitting",
+)
+
+# Services that happen at the SITTER'S home, where a code for your door would be
+# both useless and a small security incident. Checked before the list above so
+# that a slug containing both words cannot be read as needing access.
+NO_ACCESS_SERVICE_KEYWORDS: Final = (
+    "boarding",
+    "day-care",
+    "day_care",
+    "daycare",
+    "grooming",
+)
