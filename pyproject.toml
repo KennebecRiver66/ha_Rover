@@ -1,0 +1,25 @@
+[tool.pytest.ini_options]
+# `asyncio_mode = auto` is required by pytest-homeassistant-custom-component: HA's
+# own fixtures are async and are not decorated.
+asyncio_mode = "auto"
+testpaths = ["tests"]
+# Home Assistant finds a custom integration by importing `custom_components` off
+# sys.path, so the repository root has to be on it.
+pythonpath = ["."]
+addopts = "-q"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "RUF", "ASYNC", "T20", "BLE"]
+
+[tool.ruff.lint.isort]
+# Home Assistant's own convention: `homeassistant` sorts as first-party, which is
+# what makes `import voluptuous` and `from homeassistant...` separate blocks.
+# `tests` and `custom_components` join it so the test suite sorts the same way.
+known-first-party = ["homeassistant", "custom_components", "tests"]
+# Also HA's convention, and what keeps `import device_registry as dr,
+# entity_registry as er` on one line.
+combine-as-imports = true

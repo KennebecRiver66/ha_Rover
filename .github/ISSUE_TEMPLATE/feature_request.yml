@@ -1,0 +1,49 @@
+name: Feature request
+description: Suggest something this integration should be able to do
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please check the README's **Limitations** and **Roadmap** sections first.
+        Several obvious-looking features are ruled out by what Rover actually
+        exposes rather than by effort, and the reconnaissance behind that is
+        recorded in the `api.py` module docstring.
+
+        Most commonly requested, and not possible through this data source:
+
+        - **Booking dates and times.** `/api/v3/conversations/` does not carry them.
+          `stay_meta` has only locations and an HTML itinerary URL, and the
+          endpoints that do have times are behind Rover's bot challenge. They would
+          have to come from the Rover confirmation email.
+        - **Username and password login.** Rover's sign-in is behind a bot challenge
+          that a script cannot complete. That is why this uses a cookie.
+        - **Faster polling.** One hour is a hard floor; frequent polling from an
+          authenticated session is what gets an IP flagged.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: >
+        The situation, not the implementation - it often turns out there is a way to
+        get the same outcome from data that is actually reachable.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like it to do?
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Where would the data come from?
+      description: >
+        If you know a Rover URL that returns it, say which one and whether it needs
+        a signed-in session. Redact any values from examples. A request that works
+        without a cookie is especially interesting, because it would not be behind
+        the bot challenge.

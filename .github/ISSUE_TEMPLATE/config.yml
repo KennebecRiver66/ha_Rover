@@ -1,0 +1,12 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Setup help - the cookie step
+    url: https://github.com/KennebecRiver66/HARoverClient#setting-it-up
+    about: >
+      Copying the Cookie header is the step most installs fail on. The README has a
+      diagram, a redacted example, and what each setup error message means.
+  - name: Why there are no booking times
+    url: https://github.com/KennebecRiver66/HARoverClient#limitations
+    about: >
+      The most common request, and a property of Rover's API rather than a missing
+      feature. The Limitations section explains what was tested and what is reachable.

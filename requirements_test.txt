@@ -1,0 +1,8 @@
+# Pinned on purpose. pytest-homeassistant-custom-component ships a fixed Home
+# Assistant version with it, so this pin is really a pin of the HA release the
+# tests run against - 0.13.366 is HA 2026.9.3, which is what this integration is
+# developed and used on. Bumping it is a deliberate act: a new HA can change flow
+# helpers and fixtures, and finding that out from a green CI run is the point.
+#
+# Needs Python 3.14, which is what that HA release needs.
+pytest-homeassistant-custom-component==0.13.366

@@ -1,0 +1,20 @@
+{
+  "entity": {
+    "binary_sensor": {
+      "house_access_needed": {
+        "default": "mdi:door-closed-lock",
+        "state": {
+          "on": "mdi:door-open"
+        }
+      }
+    },
+    "sensor": {
+      "session": { "default": "mdi:dog-side" },
+      "latest_service_type": { "default": "mdi:dog-service" },
+      "conversation_count": { "default": "mdi:message-text" }
+    }
+  },
+  "services": {
+    "compose_access_message": "mdi:message-draw"
+  }
+}

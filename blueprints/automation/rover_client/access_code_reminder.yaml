@@ -1,0 +1,164 @@
+blueprint:
+  name: Rover - send the door code before a visit
+  description: >-
+    Sends a sitter the door code a set time before they are due, but only for
+    services that happen at your home - a walk, a drop-in or house-sitting. A
+    boarding stay happens at the sitter's house, so no code goes out.
+
+
+    Two things this cannot do by itself, and the reason each input exists:
+
+
+    Rover does not publish booking times. Its conversations endpoint carries the
+    sitter and the service but no drop-off or pick-up time, so the schedule has
+    to come from a calendar you keep - put each visit in a Local Calendar as you
+    confirm it, taking the time from Rover's confirmation email.
+
+
+    Rover cannot be written to from Home Assistant. Nothing here posts into the
+    Rover chat. Pick how it is delivered at the bottom: send it to your own phone
+    and paste it into the Rover app, which keeps the sitter's phone number out of
+    Home Assistant entirely, or send it directly by SMS if you would rather.
+  domain: automation
+  homeassistant:
+    min_version: "2025.2.0"
+  input:
+    schedule:
+      name: Schedule
+      icon: mdi:calendar-clock
+      input:
+        visit_calendar:
+          name: Visit calendar
+          description: >-
+            The calendar holding your Rover visits. The event start is treated as
+            the sitter's arrival time.
+          selector:
+            entity:
+              filter:
+                domain: calendar
+        lead_time:
+          name: How far ahead to send it
+          description: >-
+            Counted back from the start of the calendar event. An hour is a good
+            default: long enough that the sitter reads it before leaving, short
+            enough that the code is not sitting in a notification all day.
+          default: "-01:00:00"
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: 15 minutes before
+                  value: "-00:15:00"
+                - label: 30 minutes before
+                  value: "-00:30:00"
+                - label: 1 hour before
+                  value: "-01:00:00"
+                - label: 2 hours before
+                  value: "-02:00:00"
+                - label: 4 hours before
+                  value: "-04:00:00"
+                - label: 12 hours before
+                  value: "-12:00:00"
+                - label: The day before
+                  value: "-24:00:00"
+    code:
+      name: The code
+      icon: mdi:dialpad
+      input:
+        code_entity:
+          name: Door code
+          description: >-
+            An entity whose state is the code to send - an `input_text` helper you
+            keep in step with the code in the August or Yale app, or a text entity
+            from an integration that manages codes for you. An entity rather than a
+            typed-in number so that rotating the code does not mean editing this
+            automation.
+          selector:
+            entity:
+              filter:
+                - domain: input_text
+                - domain: text
+                - domain: sensor
+        extra_note:
+          name: Anything to add
+          description: >-
+            Appended to the end of the message as written. Templates work.
+          default: ""
+          selector:
+            text:
+              multiline: true
+    guards:
+      name: Only when it is really needed
+      icon: mdi:shield-check
+      collapsed: true
+      input:
+        access_sensor:
+          name: House access sensor
+          description: >-
+            Checked before anything is sent, so a boarding stay at the sitter's own
+            house never produces a code. Leave this as it is unless you have
+            renamed the entity.
+          default: binary_sensor.rover_house_access_needed
+          selector:
+            entity:
+              filter:
+                domain: binary_sensor
+        require_access_sensor:
+          name: Require that sensor to be on
+          description: >-
+            On is the safe setting. Turn it off only if you keep a calendar of
+            visits that all need the door open and would rather not depend on what
+            Rover last reported.
+          default: true
+          selector:
+            boolean:
+    delivery:
+      name: How to send it
+      icon: mdi:send
+      input:
+        send_action:
+          name: Send the message
+          description: >-
+            Runs with a `message` variable holding the finished text - use it as
+            `{{ message }}` in a notify action. Sending it to your own phone and
+            pasting it into the Rover app is the safest default.
+          selector:
+            action:
+
+mode: single
+max_exceeded: silent
+
+variables:
+  code_entity: !input code_entity
+  access_sensor: !input access_sensor
+  require_access_sensor: !input require_access_sensor
+  extra_note: !input extra_note
+
+triggers:
+  - trigger: calendar
+    entity_id: !input visit_calendar
+    event: start
+    offset: !input lead_time
+
+conditions:
+  # Not a state condition on the sensor, so that turning the guard off does not
+  # require the entity to exist at all.
+  - condition: template
+    value_template: >-
+      {{ not require_access_sensor or is_state(access_sensor, 'on') }}
+  # A code of "unknown" is worse than no message: it sends a sitter to a keypad
+  # with a word to type.
+  - condition: template
+    value_template: >-
+      {{ states(code_entity) not in ['unknown', 'unavailable', '', 'None'] }}
+
+actions:
+  - action: rover_client.compose_access_message
+    data:
+      code: "{{ states(code_entity) }}"
+      arrival: "{{ trigger.calendar_event.start }}"
+      extra_note: "{{ extra_note }}"
+    response_variable: composed
+  - variables:
+      message: "{{ composed.message }}"
+  - sequence: !input send_action

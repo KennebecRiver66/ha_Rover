@@ -1,0 +1,130 @@
+name: Bug report
+description: Something is broken or reports the wrong thing
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Before you type anything, the one rule
+
+        **Never paste a real `Cookie:` value, and never paste unredacted
+        diagnostics.** A Rover cookie is a full-access credential for your account:
+        anyone who reads it can see your messages and addresses and book services as
+        you. It cannot be scoped, and the only way to revoke it is to sign out
+        everywhere.
+
+        The same goes for real sitter names, phone numbers, addresses and profile
+        URLs — that is someone else's personal data. Replace them with obviously
+        fake values like `Testsitter`.
+
+        **And never paste a real door code.** If the report is about the reminder
+        service, replace it with something like `135790`; the wording is the part
+        anyone here needs to see.
+
+        Diagnostics downloaded from Home Assistant already redact the cookie and
+        report sitter counts rather than names. **Open the file and check before
+        attaching it.**
+
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Confirm
+      options:
+        - label: I have not included a real cookie value, real sitter names, a real door code, or unredacted diagnostics.
+          required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you expected, and what you got instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+
+  - type: input
+    id: integration-version
+    attributes:
+      label: Rover Client version
+      description: Settings → Devices & services → Rover Client, or manifest.json.
+      placeholder: "0.3.0"
+    validations:
+      required: true
+
+  - type: input
+    id: ha-version
+    attributes:
+      label: Home Assistant version
+      placeholder: "2026.9.3"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: Installation method
+      options:
+        - HACS
+        - Manual copy into custom_components
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: session-state
+    attributes:
+      label: What does sensor.rover_session say?
+      description: >
+        This is the sensor that stays readable when the others do not, so it is
+        usually the fastest route to the cause.
+      options:
+        - Signed in
+        - Not signed in
+        - Blocked
+        - Error
+        - Unavailable
+        - The entity does not exist
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: >
+        Settings → System → Logs, filtered to `rover_client`. Add
+        `logger: {logs: {custom_components.rover_client: debug}}` to
+        configuration.yaml for more detail. Check it for cookies before pasting.
+      render: text
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics (optional)
+      description: >
+        From the integration's ⋮ menu → Download diagnostics. Open it first and
+        confirm the cookie is shown as redacted.
+      render: json
+
+  - type: markdown
+    attributes:
+      value: |
+        ### Things that are known, not bugs
+
+        - **No booking dates or times.** The endpoint does not carry them. See the
+          README's Limitations section for exactly why, and where they *can* come
+          from.
+        - **The session expires every few weeks** and you get a Reconfigure prompt.
+          That is normal operation.
+        - **`Blocked` appears sometimes.** Rover's bot protection, not your cookie;
+          it usually clears itself.
+        - **Only one Rover account** is supported per Home Assistant.
