@@ -18,7 +18,9 @@ So, in issues, pull requests, tests, fixtures and commit messages:
 - **no unredacted diagnostics**; download them, open them, and check;
 - **no real sitter names, phone numbers, addresses or profile URLs** — those are
   someone else's personal data, and they did not sign up for a bug report;
-- **no real account usernames or email addresses.**
+- **no real account usernames or email addresses**;
+- **no real door codes.** If you are reporting something about the reminder
+  service, the wording is the interesting part and `135790` proves it just as well.
 
 Use obviously fake values instead. The test suite's own fixtures are the model:
 `Testsitter`, `csrftoken=fake-csrf-token`. If a value looks like it might be real,

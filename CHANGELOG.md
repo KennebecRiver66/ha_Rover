@@ -4,6 +4,39 @@ All notable changes to this integration are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-09-27
+
+Door codes for sitters who have to get into the house. No breaking changes; the
+new entity appears by itself and nothing else moves.
+
+### Added
+
+- **`binary_sensor.rover_house_access_needed`.** On when the newest booking is a
+  service performed at your home - a walk, a drop-in, house-sitting - and off for
+  boarding or day care, which happen at the sitter's. An unrecognised service type
+  reads as off: a reminder that does not arrive is recoverable, and a door code
+  sent to the wrong person is not. Its attributes name the booking behind the state
+  and list every sitter currently booked for something needing access.
+- **`rover_client.compose_access_message`.** Writes a door-code reminder in the
+  wording of a person rather than a machine, and returns it. Four variants, picked
+  at random so a weekly sitter is not sent the identical sentence every time, with
+  the arrival time rendered as "at 3pm today" in your own timezone. It sends
+  nothing: Rover cannot be written to from Home Assistant, so delivery is left to
+  whatever notifier you already trust - sending it to your own phone to paste into
+  the Rover app keeps the sitter's number out of Home Assistant entirely.
+- **An automation blueprint**, `blueprints/automation/rover_client/access_code_reminder.yaml`,
+  wiring the three parts together: a calendar you keep supplies the arrival times
+  that Rover does not publish, a dropdown sets how far ahead to send (15 minutes to
+  a day), the binary sensor guards it, and an action input decides where it goes.
+  Validated in CI through Home Assistant's own blueprint import checks, because a
+  typo in a blueprint is otherwise only found by a user whose reminder never comes.
+- `docs/access-code-reminders.md`: the whole walkthrough, including why the timing
+  has to come from a calendar, why an unknown service type sends nothing, and the
+  fact that a code passed to any service call is recorded in that automation's
+  trace.
+- Diagnostics now report `requires_house_access` alongside the service type, so
+  "why did no code go out" is answerable from a dump.
+
 ## [0.2.0] - 2026-09-26
 
 The "someone other than the author can install this" release. No breaking changes:
@@ -76,5 +109,6 @@ integration.
   - each mapped to the Home Assistant reaction that fits it.
 - Diagnostics with the cookie redacted and sitters counted rather than named.
 
+[0.3.0]: https://github.com/KennebecRiver66/HARoverClient/releases/tag/v0.3.0
 [0.2.0]: https://github.com/KennebecRiver66/HARoverClient/releases/tag/v0.2.0
 [0.1.0]: https://github.com/KennebecRiver66/HARoverClient/releases/tag/v0.1.0

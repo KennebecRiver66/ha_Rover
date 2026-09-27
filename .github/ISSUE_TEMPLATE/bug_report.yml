@@ -17,6 +17,10 @@ body:
         URLs — that is someone else's personal data. Replace them with obviously
         fake values like `Testsitter`.
 
+        **And never paste a real door code.** If the report is about the reminder
+        service, replace it with something like `135790`; the wording is the part
+        anyone here needs to see.
+
         Diagnostics downloaded from Home Assistant already redact the cookie and
         report sitter counts rather than names. **Open the file and check before
         attaching it.**
@@ -26,7 +30,7 @@ body:
     attributes:
       label: Confirm
       options:
-        - label: I have not included a real cookie value, real sitter names, or unredacted diagnostics.
+        - label: I have not included a real cookie value, real sitter names, a real door code, or unredacted diagnostics.
           required: true
 
   - type: textarea
@@ -52,7 +56,7 @@ body:
     attributes:
       label: Rover Client version
       description: Settings → Devices & services → Rover Client, or manifest.json.
-      placeholder: "0.2.0"
+      placeholder: "0.3.0"
     validations:
       required: true
 

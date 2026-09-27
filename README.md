@@ -7,7 +7,7 @@
 
 A Home Assistant integration that reads your [Rover](https://www.rover.com) account — which sitter you booked and what kind of service it is — so automations can react to dog-care bookings.
 
-> **Status: 0.2.0, early but tested.** The core read path works and is in daily use. Read [Limitations](#limitations) before installing — several of them are properties of Rover, not bugs that can be fixed here.
+> **Status: 0.3.0, early but tested.** The core read path works and is in daily use. Read [Limitations](#limitations) before installing — several of them are properties of Rover, not bugs that can be fixed here.
 
 <img src="docs/images/entities.png" alt="The Rover device in Home Assistant, showing the Session, Latest service type and Conversations sensors" width="700">
 
@@ -18,6 +18,7 @@ A Home Assistant integration that reads your [Rover](https://www.rover.com) acco
 | `sensor.rover_session` | `Signed in` | Whether the saved session still works. The one sensor that stays readable when the others don't. |
 | `sensor.rover_latest_service_type` | `overnight-boarding` | The service type of the newest booking. Its attributes carry a sitter → service-type map. |
 | `sensor.rover_conversations` | `14` | How many conversations the account has. A cheap liveness signal. |
+| `binary_sensor.rover_house_access_needed` | `Off` | Whether the newest booking is one that happens at *your* home — a walk, a drop-in or house-sitting — rather than at the sitter's. |
 
 `sensor.rover_session` is the one to write alerts against, because it keeps reporting when the others cannot:
 
@@ -82,6 +83,27 @@ automation:
           title: Rover needs attention
           message: "Rover session is {{ states('sensor.rover_session') }}."
 ```
+
+## Sending a sitter the door code
+
+If you have a keypad lock — August, Yale, anything Home Assistant can read a code from or that you keep in a helper — the integration can write the reminder for you and an included blueprint can schedule it:
+
+```
+Hi Testsitter - quick one before your walk at 3pm today. The door code is 135790,
+on the keypad by the front door. If it gives you any trouble just message me here.
+Thank you!
+```
+
+That is `rover_client.compose_access_message`. It returns the text and **sends nothing**, and there are two limits behind that design worth knowing before you set it up:
+
+- **Nothing here can post into the Rover chat.** Reading conversations is the one Rover endpoint outside the bot challenge; writing is not. So the reminder goes wherever you send it — to your own phone to paste into the Rover app, which is the default we suggest because it keeps the sitter's phone number out of Home Assistant, or by SMS if you'd rather.
+- **The timing has to come from you.** Rover does not publish booking times anywhere this integration can reach, so "an hour before they arrive" needs a calendar you keep. The blueprint triggers off a calendar entity; you add each visit as you confirm it, taking the time from Rover's confirmation email.
+
+`binary_sensor.rover_house_access_needed` is the guard. A boarding stay happens at the sitter's house, so no code goes out for one; walks, drop-ins and house-sitting turn it on. An unrecognised service type reads as off — [failing closed](docs/access-code-reminders.md#why-an-unknown-service-sends-nothing) is deliberate, because the cost of a missed reminder is a phone call and the cost of a wrong one is a house code in a stranger's inbox.
+
+The blueprint has the on/off switch and the timing: it is an ordinary automation, so you can disable it in one click, and the lead time is a dropdown from 15 minutes to a day ahead.
+
+**[Full walkthrough: docs/access-code-reminders.md](docs/access-code-reminders.md)** — the calendar, the code helper, importing the blueprint, and doing it by hand instead.
 
 ## Installation
 
@@ -165,7 +187,7 @@ The floor is not squeamishness. The endpoint sits behind bot protection, and fre
 
 These are the honest edges. Most are Rover's, not this integration's.
 
-**Booking times are not available.** This is the big one. `/api/v3/conversations/` returns the sitter and the service type but no dates or times. `stay_meta` holds only locations and an `itinerary_url`, and that URL returns an HTML document rather than JSON. The endpoints that *would* have times — `/api/v3/stays/<id>/` and `/account/stays/<id>/` — are behind the bot challenge and unreachable with a session cookie. If you need drop-off and pick-up times, they have to come from the Rover confirmation **email**, not from here.
+**Booking times are not available.** This is the big one. `/api/v3/conversations/` returns the sitter and the service type but no dates or times. `stay_meta` holds only locations and an `itinerary_url`, and that URL returns an HTML document rather than JSON. The endpoints that *would* have times — `/api/v3/stays/<id>/` and `/account/stays/<id>/` — are behind the bot challenge and unreachable with a session cookie. If you need drop-off and pick-up times, they have to come from the Rover confirmation **email**, not from here. Anything time-based, including the [door-code reminder](#sending-a-sitter-the-door-code), therefore triggers off a calendar you maintain rather than off Rover.
 
 **Cookie auth, with all that implies.** No OAuth, no API key, no refresh. The session expires and you re-paste. A cookie is a full-access credential for your Rover account, so treat Home Assistant backups as secrets.
 
@@ -175,13 +197,14 @@ These are the honest edges. Most are Rover's, not this integration's.
 
 **Bot challenges happen.** See [above](#bot-challenges).
 
-**Read-only.** It cannot book, message, or cancel anything. This is by design rather than by omission: Rover's write endpoints sit behind the same bot protection, so anything that changed state would be both unreliable and a much bigger thing to trust a custom integration with. If it ever grows writes, they will be a separately gated concern.
+**Read-only.** It cannot book, message, or cancel anything. This is by design rather than by omission: Rover's write endpoints sit behind the same bot protection, so anything that changed state would be both unreliable and a much bigger thing to trust a custom integration with. If it ever grows writes, they will be a separately gated concern. It is also why `compose_access_message` hands the reminder back instead of sending it.
 
 **English only.** `strings.json` is the source of the UI text and `translations/en.json` is generated from it by [`scripts/sync_translations.py`](scripts/sync_translations.py), which CI checks. Translations into other languages are welcome; drop a `translations/<code>.json` alongside it.
 
 ## Roadmap
 
 - **Sitter availability** from sitters' public Rover calendars — no auth, and not behind the bot challenge, so it is a genuinely more reliable data source than the one used here. It can answer "who is free on the 7th?". Designed but not implemented; see [docs/sitter-availability.md](docs/sitter-availability.md) for the design and for what has to be verified first.
+- **Booking times from the confirmation email**, which would let the door-code reminder schedule itself instead of reading a calendar you keep by hand. Needs an IMAP-based parser and one redacted sample email to build it against.
 - A `binary_sensor` for "a booking is active right now" (needs times, so it needs the email route).
 - `strict-typing` clean bill of health.
 
@@ -190,7 +213,7 @@ These are the honest edges. Most are Rover's, not this integration's.
 ```bash
 python3 -m venv .venv && . .venv/bin/activate
 pip install -r requirements_test.txt
-python -m pytest                       # 83 tests, real Home Assistant fixtures
+python -m pytest                       # 147 tests, real Home Assistant fixtures
 ruff check .
 python3 scripts/sync_translations.py   # after editing strings.json
 ```
@@ -200,6 +223,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Never put a real `Cookie:` value, a real
 ## Privacy
 
 The cookie is stored in Home Assistant's config entry, not in your YAML, and is redacted from diagnostics. Diagnostics report how many sitters were seen and which service types appeared, never who they are — deliberately, so a diagnostics dump is safe to paste into a public issue.
+
+A door code passed to `compose_access_message` is not stored anywhere by this integration and is never logged, but anything passed to any service call appears in that automation's **trace**, which is kept in your config directory and shown in the UI. That is local to your instance, and it is a reason to rotate the code rather than to avoid the feature.
 
 ## Licence
 
