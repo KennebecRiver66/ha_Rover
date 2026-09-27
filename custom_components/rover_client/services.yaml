@@ -1,0 +1,24 @@
+compose_access_message:
+  fields:
+    code:
+      required: true
+      example: "1234"
+      selector:
+        text:
+    sitter:
+      example: "Testsitter"
+      selector:
+        text:
+    service_type:
+      example: "dog-walking"
+      selector:
+        text:
+    arrival:
+      example: "2026-09-27 15:00:00"
+      selector:
+        datetime:
+    extra_note:
+      example: "The leash is on the hook by the back door."
+      selector:
+        text:
+          multiline: true

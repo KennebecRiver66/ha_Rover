@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant
 from .const import CONF_COOKIE
 from .cookie import cookie_names, count_cookies
 from .coordinator import RoverConfigEntry
+from .message import requires_house_access
 
 # The cookie IS the credential - it grants full access to the Rover account.
 # Diagnostics get pasted into public issue trackers, so this redaction is the
@@ -51,6 +52,12 @@ async def async_get_config_entry_diagnostics(
             "session_state": data.session_state if data else None,
             "conversation_count": data.conversation_count if data else None,
             "latest_service_type": data.latest_service_type if data else None,
+            # The classifier's answer, not just its input. "Why did no door code go
+            # out" is otherwise unanswerable from a diagnostics dump, because the
+            # reason is a judgement about a slug rather than the slug itself.
+            "requires_house_access": (
+                requires_house_access(data.latest_service_type) if data else None
+            ),
             # Sitter first names are personal data, so report only how many were
             # seen and which service types appeared - enough to debug the parser
             # without publishing who walks the dogs.

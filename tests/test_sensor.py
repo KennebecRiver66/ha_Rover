@@ -34,12 +34,13 @@ API = "custom_components.rover_client.api.RoverClient.async_get_conversations"
 SESSION = "sensor.rover_session"
 LATEST = "sensor.rover_latest_service_type"
 COUNT = "sensor.rover_conversations"
+ACCESS = "binary_sensor.rover_house_access_needed"
 
 
 async def test_entities_and_their_ids(
     hass: HomeAssistant, setup_integration: MockConfigEntry
 ) -> None:
-    """The three sensors exist under the expected IDs.
+    """The integration's entities exist under the expected IDs.
 
     The IDs are part of the contract: `has_entity_name` plus a service device is
     what produces `sensor.rover_*`, and anyone's automations are written against
@@ -59,13 +60,14 @@ async def test_entities_and_their_ids(
         SESSION: f"{setup_integration.entry_id}_session",
         LATEST: f"{setup_integration.entry_id}_latest_service_type",
         COUNT: f"{setup_integration.entry_id}_conversation_count",
+        ACCESS: f"{setup_integration.entry_id}_house_access_needed",
     }
 
 
 async def test_one_service_device(
     hass: HomeAssistant, setup_integration: MockConfigEntry
 ) -> None:
-    """All three sensors hang off a single service device."""
+    """Every entity hangs off a single service device."""
     devices = dr.async_entries_for_config_entry(
         dr.async_get(hass), setup_integration.entry_id
     )

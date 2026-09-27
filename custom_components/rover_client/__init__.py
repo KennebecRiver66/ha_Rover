@@ -4,12 +4,27 @@ from __future__ import annotations
 
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import issue_registry as ir
+from homeassistant.helpers import config_validation as cv, issue_registry as ir
+from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN, ISSUE_BLOCKED
 from .coordinator import RoverConfigEntry, RoverCoordinator
+from .services import async_setup_services
 
-PLATFORMS: list[Platform] = [Platform.SENSOR]
+PLATFORMS: list[Platform] = [Platform.BINARY_SENSOR, Platform.SENSOR]
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Register services once, independently of any config entry.
+
+    Here rather than in async_setup_entry so that the composer is callable while
+    the entry is broken - a dead cookie stops the polling, but it should not also
+    take away the service that words a door-code reminder.
+    """
+    async_setup_services(hass)
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: RoverConfigEntry) -> bool:

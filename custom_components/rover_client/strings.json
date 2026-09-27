@@ -55,7 +55,40 @@
       "description": "Rover has answered {title} with a bot-protection challenge instead of data {polls} polls in a row, so bookings have stopped updating. `sensor.rover_session` reports `Blocked` and the other sensors are unavailable.\n\nYour saved session is probably fine - this is Rover's protection reacting to the request, not to the cookie, so there is nothing to re-paste.\n\nWhat helps:\n\n- Wait. Challenges usually clear on their own.\n- Check the poll interval under **Settings > Devices & services > Rover Client > Configure**. If it was shortened, put it back up; frequent polling is what attracts this.\n- Open rover.com in a browser on the same network and complete any challenge it shows you there.\n\nThis notice disappears by itself as soon as a poll gets through."
     }
   },
+  "services": {
+    "compose_access_message": {
+      "name": "Compose access message",
+      "description": "Writes a door-code reminder for a sitter in the wording of a person rather than a machine, and returns it. It does not send anything: Rover cannot be written to from Home Assistant, so send the result to yourself to paste into the Rover app, or to the sitter through any notify service you already use.",
+      "fields": {
+        "code": {
+          "name": "Door code",
+          "description": "The code the sitter should enter on the keypad. Read it from a helper or a text entity so you can rotate it; note that anything passed to a service is visible in that automation's trace."
+        },
+        "sitter": {
+          "name": "Sitter",
+          "description": "First name to greet. Defaults to the sitter on the newest booking, and is left out of the greeting entirely if neither is known."
+        },
+        "service_type": {
+          "name": "Service type",
+          "description": "Rover service type, such as dog-walking or drop-in-visit. Defaults to the newest booking. Decides both the wording and whether the reply reports that house access is needed."
+        },
+        "arrival": {
+          "name": "Arrival",
+          "description": "When the sitter is expected, used to word the message as \"at 3pm today\". Rover does not publish booking times, so this has to come from your own calendar or from the confirmation email. Left out, the message simply does not mention a time."
+        },
+        "extra_note": {
+          "name": "Extra note",
+          "description": "A sentence of your own added to the end, for anything specific to the visit."
+        }
+      }
+    }
+  },
   "entity": {
+    "binary_sensor": {
+      "house_access_needed": {
+        "name": "House access needed"
+      }
+    },
     "sensor": {
       "session": {
         "name": "Session",
